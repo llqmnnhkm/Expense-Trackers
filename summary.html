@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Summary</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .summary-container {
+            margin: 20px;
+        }
+        .footer {
+            display: flex;
+            justify-content: space-around;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background-color: #f8f9fa;
+            padding: 10px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container summary-container">
+    <h3 class="text-center">Expense Summary</h3>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card text-white bg-primary mb-3">
+                <div class="card-header">Total Expenses</div>
+                <div class="card-body">
+                    <h5 class="card-title" id="totalExpenses">RM 0</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-success mb-3">
+                <div class="card-header">Total Assets</div>
+                <div class="card-body">
+                    <h5 class="card-title" id="totalAssets">RM 0</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-danger mb-3">
+                <div class="card-header">Total Liabilities</div>
+                <div class="card-body">
+                    <h5 class="card-title" id="totalLiabilities">RM 0</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="footer">
+    <div onclick="window.location.href='homepage.html'">Home</div>
+    <div onclick="window.location.href='account.html'">Account</div>
+    <div onclick="window.location.href='summary.html'">Summary</div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script>
+    $(document).ready(function() {
+        function calculateSummary() {
+            const accounts = JSON.parse(localStorage.getItem('accounts')) || [];
+            const expenses = JSON.parse(localStorage.getItem('expenses')) || { Food: [], Expenses: [], Skincare: [] };
+
+            let totalExpenses = 0;
+            for (let category in expenses) {
+                totalExpenses += expenses[category].reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
+            }
+
+            let totalAssets = 0;
+            let totalLiabilities = 0;
+            accounts.forEach(account => {
+                if (account.type.toLowerCase() === 'cash' || account.type.toLowerCase() === 'debit') {
+                    totalAssets += parseFloat(account.amount);
+                } else if (account.type.toLowerCase() === 'loan') {
+                    totalLiabilities += parseFloat(account.amount);
+                }
+            });
+
+            $('#totalExpenses').text(`RM ${totalExpenses}`);
+            $('#totalAssets').text(`RM ${totalAssets}`);
+            $('#totalLiabilities').text(`RM ${totalLiabilities}`);
+        }
+
+        calculateSummary();
+    });
+</script>
+
+</body>
+</html>
+

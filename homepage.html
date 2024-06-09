@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Tracker</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .expense-category {
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 10px;
+            color: white;
+            cursor: pointer;
+            flex: 1;
+        }
+        .expense-category.food { background-color: #8bc34a; }
+        .expense-category.expenses { background-color: #03a9f4; }
+        .expense-category.skincare { background-color: #e91e63; }
+        .footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            background-color: #f8f9fa;
+            padding: 10px 0;
+        }
+        .view-history {
+            width: calc(33.33% - 20px);
+            margin: 10px;
+        }
+        
+    </style>
+</head>
+<body>
+
+<div class="container mt-5">
+    <div class="text-center mb-4">
+        
+        <h6 id="totalExpense">Total Expense RM 0</h6>
+    </div>
+    <div class="d-flex justify-content-center">
+        <div class="expense-category food" data-category="Food">
+            <h4>Food</h4>
+            <p id="foodAmount">RM 0</p>
+        </div>
+        <div class="expense-category expenses" data-category="Expenses">
+            <h4>Expenses</h4>
+            <p id="expensesAmount">RM 0</p>
+        </div>
+        <div class="expense-category skincare" data-category="Skincare">
+            <h4>Skincare</h4>
+            <p id="skincareAmount">RM 0</p>
+        </div>
+    </div>
+    <div class="d-flex justify-content-center mt-3">
+        <button class="btn btn-light view-history" data-category="Food">View Food History</button>
+        <button class="btn btn-light view-history" data-category="Expenses">View Expenses History</button>
+        <button class="btn btn-light view-history" data-category="Skincare">View Skincare History</button>
+    </div>
+</div>
+
+<div class="footer">
+    <div onclick="window.location.href='homepage.html'">Home</div>
+    <div onclick="window.location.href='account.html'">Account</div>
+    <div onclick="window.location.href='summary.html'">Summary</div>
+</div>
+
+
+<!-- Modal for viewing history -->
+<div class="modal fade" id="historyModal" tabindex="-1" role="dialog" aria-labelledby="historyModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="historyModalLabel">Expense History</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <ul id="historyList" class="list-group"></ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for adding/editing expenses -->
+<div class="modal fade" id="expenseModal" tabindex="-1" role="dialog" aria-labelledby="expenseModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="expenseModalLabel">Add Expense</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="expenseForm">
+                    <input type="hidden" id="expenseCategory">
+                    <input type="hidden" id="expenseIndex">
+                    <div class="form-group">
+                        <label for="expenseAmountInput">Amount</label>
+                        <input type="number" class="form-control" id="expenseAmountInput" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="expenseDateInput">Date</label>
+                        <input type="date" class="form-control" id="expenseDateInput" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="expenseDescriptionInput">Description</label>
+                        <input type="text" class="form-control" id="expenseDescriptionInput" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="expenseAccount">Account</label>
+                        <select class="form-control" id="expenseAccount" required>
+                            <option value="">Select Account</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save Expense</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script>
+    $(document).ready(function() {
+        // Load expenses from Local Storage and display them
+        loadExpenses();
+
+        // Populate accounts dropdown
+        function populateAccountsDropdown() {
+            const accounts = JSON.parse(localStorage.getItem('accounts')) || [];
+            const accountSelect = $('#expenseAccount');
+            accountSelect.empty();
+            accountSelect.append('<option value="">Select Account</option>');
+
+            accounts.forEach((account, index) => {
+                accountSelect.append(`<option value="${index}">${account.type}</option>`);
+            });
+        }
+
+        // Initial call to populate accounts dropdown
+        populateAccountsDropdown();
+
+        $('.expense-category').on('click', function() {
+            var category = $(this).data('category');
+            $('#expenseCategory').val(category);
+            $('#expenseIndex').val('');
+            $('#expenseModalLabel').text('Add Expense for ' + category);
+            $('#expenseAmountInput').val('');
+            $('#expenseDateInput').val('');
+            $('#expenseDescriptionInput').val('');
+            $('#expenseModal').modal('show');
+        });
+
+        $('.view-history').on('click', function() {
+            var category = $(this).data('category');
+            $('#historyModalLabel').text(category + ' Expense History');
+            loadHistory(category);
+            $('#historyModal').modal('show');
+        });
+
+        $('#expenseForm').on('submit', function(event) {
+            event.preventDefault();
+            saveExpense();
+            $('#expenseModal').modal('hide');
+        });
+
+        $('#expenseModal').on('hidden.bs.modal', function() {
+            loadExpenses();
+        });
+
+        function loadExpenses() {
+    let expenses = JSON.parse(localStorage.getItem('expenses')) || { Food: [], Expenses: [], Skincare: [] };
+    let totalExpense = 0;
+
+    for (let category in expenses) {
+        let categoryTotal = expenses[category].reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
+        $(`#${category.toLowerCase()}Amount`).text(`RM ${categoryTotal}`);
+        totalExpense += categoryTotal;
+    }
+    $('#totalExpense').text(`Expense RM ${totalExpense}`);
+        }
+
+
+        function saveExpense() {
+            let category = $('#expenseCategory').val();
+            let amount = parseFloat($('#expenseAmountInput').val());
+            let date = $('#expenseDateInput').val();
+            let description = $('#expenseDescriptionInput').val();
+            let accountIndex = $('#expenseAccount').val();
+            let index = $('#expenseIndex').val();
+
+            let expenses = JSON.parse(localStorage.getItem('expenses')) || { Food: [], Expenses: [], Skincare: [] };
+            let accounts = JSON.parse(localStorage.getItem('accounts')) || [];
+
+            if (accountIndex === "") {
+                alert('Please select an account.');
+                return;
+            }
+
+            // Update account balance
+            if (accounts[accountIndex].type.toLowerCase() === 'cash' || accounts[accountIndex].type.toLowerCase() === 'debit') {
+                accounts[accountIndex].amount -= amount;
+            } else if (accounts[accountIndex].type.toLowerCase() === 'loan') {
+                alert('Expenses cannot be deducted from a loan account.');
+                return;
+            }
+
+            if (index) {
+                // Edit existing expense
+                expenses[category][index] = { amount, date, description, account: accounts[accountIndex].type };
+            } else {
+                // Add new expense
+                expenses[category].push({ amount, date, description, account: accounts[accountIndex].type });
+            }
+
+            localStorage.setItem('expenses', JSON.stringify(expenses));
+            localStorage.setItem('accounts', JSON.stringify(accounts));
+            populateAccountsDropdown();
+            loadExpenses();
+        }
+
+        function loadHistory(category) {
+            let expenses = JSON.parse(localStorage.getItem('expenses')) || { Food: [], Expenses: [], Skincare: [] };
+            let historyList = $('#historyList');
+            historyList.empty();
+
+            expenses[category].forEach((expense, index) => {
+                let listItem = `
+                    <li class="list-group-item">
+                        <div><strong>Date:</strong> ${expense.date}</div>
+                        <div><strong>Amount:</strong> RM ${expense.amount}</div>
+                        <div><strong>Description:</strong> ${expense.description}</div>
+                        <div><strong>Account:</strong> ${expense.account}</div>
+                        <button class="btn btn-sm btn-danger mt-2 delete-expense" data-category="${category}" data-index="${index}">Delete</button>
+                    </li>`;
+                historyList.append(listItem);
+            });
+        }
+
+        $(document).on('click', '.delete-expense', function() {
+            let category = $(this).data('category');
+            let index = $(this).data('index');
+
+            let expenses = JSON.parse(localStorage.getItem('expenses')) || { Food: [], Expenses: [], Skincare: [] };
+            let expense = expenses[category][index];
+            let accounts = JSON.parse(localStorage.getItem('accounts')) || [];
+
+            // Find the account and update the balance
+            let accountIndex = accounts.findIndex(acc => acc.type === expense.account);
+            if (accountIndex > -1) {
+                let account = accounts[accountIndex];
+                account.amount += expense.amount;
+                accounts[accountIndex] = account;
+                localStorage.setItem('accounts', JSON.stringify(accounts));
+            }
+
+            expenses[category].splice(index, 1);
+            localStorage.setItem('expenses', JSON.stringify(expenses));
+
+            alert('Expense deleted successfully!');
+            loadExpenses();
+            loadHistory(category);
+        });
+    });
+</script>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
